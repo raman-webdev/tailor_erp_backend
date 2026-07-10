@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Verify Email</title>
+</head>
+<body>
+
+<h2>Welcome to Tailor ERP</h2>
+
+<p>Hello {{ user.full_name }},</p>
+
+<p>Thank you for registering.</p>
+
+<p>Please click the button below to verify your email.</p>
+
+<p>
+    <a href="{{ verification_link }}">
+        Verify Email
+    </a>
+</p>
+
+<p>If the button doesn't work, copy this link:</p>
+
+<p>{{ verification_link }}</p>
+
+<p>This link expires in 24 hours.</p>
+
+</body>
+</html>
