@@ -24,7 +24,7 @@ def organization_logo_upload_path(instance, filename):
 
 class Organization(BaseModel):
 
-    owner = models.OneToOneField(
+    owner = models.ForeignKey(
         "accounts.User",
         on_delete=models.PROTECT,
         related_name="owned_organization",
