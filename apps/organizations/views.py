@@ -3,52 +3,58 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.db import transaction
 
 from .serializers import OrganizationSerializer
 
 import re
 
-from .models import Organization
+from .models import Organization, Branch
 
 
-def generate_organization_code(name):
-    """
-    Example:
-    Himalayan Life Insurance Pvt. Ltd.
-    -> HLI-0001
-    """
+IGNORED_WORDS = {
+    "PVT",
+    "PRIVATE",
+    "LIMITED",
+    "LTD",
+    "COMPANY",
+    "CO",
+    "THE",
+    "AND",
+}
 
-    ignored_words = {
-        "PVT",
-        "PRIVATE",
-        "LIMITED",
-        "LTD",
-        "COMPANY",
-        "CO",
-        "THE",
-        "AND",
-    }
 
-    words = re.findall(r"[A-Za-z]+", name)
-
-    initials = ""
-
-    for word in words:
-        upper = word.upper()
-
-        if upper not in ignored_words:
-            initials += upper[0]
-
-    initials = initials[:5]
-
-    count = (
-        Organization.objects.filter(
-            code__startswith=initials
-        ).count()
-        + 1
+def generate_entity_code(
+    model,
+    name,
+):
+    words = re.findall(
+        r"[A-Za-z]+",
+        name,
     )
 
-    return f"{initials}-{count:04d}"
+    initials = "".join(
+        word[0].upper()
+        for word in words
+        if word.upper() not in IGNORED_WORDS
+    )[:5]
+
+    if not initials:
+        initials = "GEN"
+
+    last = (
+        model.objects
+        .filter(code__startswith=initials)
+        .order_by("-code")
+        .first()
+    )
+
+    if last:
+        last_number = int(last.code.split("-")[1])
+    else:
+        last_number = 0
+
+    return f"{initials}-{last_number + 1:04d}"
 
 
 
@@ -89,12 +95,16 @@ class OrganizationListCreateView(APIView):
         )
         serializer.is_valid(raise_exception=True)
 
-        organization = serializer.save(
-            owner=request.user,
-            code=generate_organization_code(
+        with transaction.atomic():
+            code = generate_entity_code(
+                Organization,
                 serializer.validated_data["name"],
-            ),
-        )
+            )
+
+            organization = serializer.save(
+                owner=request.user,
+                code=code,
+            )
 
         return Response(
             {
