@@ -1,8 +1,8 @@
 from django.contrib import admin
 from django.urls import path
-from .views import OrganizationCreateView
+from .views import OrganizationListCreateView
 
 
 urlpatterns = [
-    path("create/", OrganizationCreateView.as_view(), name="organization-create"),
+    path("", OrganizationListCreateView.as_view(), name="organization-create"),
 ]

@@ -14,10 +14,6 @@ class LocationService:
 
     @classmethod
     def load_data(cls):
-        """
-        Load Nepal location data from JSON.
-        The file is loaded only once and cached.
-        """
         if cls._data is None:
             file_path = (
                 Path(__file__)
@@ -33,48 +29,35 @@ class LocationService:
         return cls._data
 
     @classmethod
-    def _get_municipalities(cls, district):
+    def _normalize_list(cls, value):
         """
-        Normalize municipality data.
-
-        Some districts store municipalities as a list:
-            [
-                {...},
-                {...}
-            ]
-
-        Others store them as a dict:
-            {
-                "9": {...},
-                "10": {...}
-            }
-
-        This method always returns a list.
+        Convert dict -> list while leaving lists unchanged.
         """
-        municipalities = district.get("municipalities", [])
+        if isinstance(value, dict):
+            return list(value.values())
 
-        if isinstance(municipalities, dict):
-            return list(municipalities.values())
+        if isinstance(value, list):
+            return value
 
-        return municipalities
+        return []
 
     @classmethod
     def get_provinces(cls):
-        data = cls.load_data()
+        provinces = cls._normalize_list(cls.load_data())
 
         return [
             {
                 "id": province["id"],
                 "name": province["name"],
             }
-            for province in data
+            for province in provinces
         ]
 
     @classmethod
     def get_province(cls, province_id):
-        data = cls.load_data()
+        provinces = cls._normalize_list(cls.load_data())
 
-        for province in data:
+        for province in provinces:
             if province["id"] == province_id:
                 return {
                     "id": province["id"],
@@ -85,16 +68,21 @@ class LocationService:
 
     @classmethod
     def get_districts(cls, province_id):
-        data = cls.load_data()
+        provinces = cls._normalize_list(cls.load_data())
 
-        for province in data:
+        for province in provinces:
             if province["id"] == province_id:
+
+                districts = cls._normalize_list(
+                    province.get("districts")
+                )
+
                 return [
                     {
                         "id": district["id"],
                         "name": district["name"],
                     }
-                    for district in province["districts"]
+                    for district in districts
                 ]
 
         return []
@@ -105,13 +93,17 @@ class LocationService:
         province_id,
         district_id,
     ):
-        data = cls.load_data()
+        provinces = cls._normalize_list(cls.load_data())
 
-        for province in data:
+        for province in provinces:
             if province["id"] != province_id:
                 continue
 
-            for district in province["districts"]:
+            districts = cls._normalize_list(
+                province.get("districts")
+            )
+
+            for district in districts:
                 if district["id"] == district_id:
                     return {
                         "id": district["id"],
@@ -126,34 +118,37 @@ class LocationService:
         province_id,
         district_id,
     ):
-        data = cls.load_data()
+        provinces = cls._normalize_list(cls.load_data())
 
-        for province in data:
+        for province in provinces:
             if province["id"] != province_id:
                 continue
 
-            for district in province["districts"]:
+            districts = cls._normalize_list(
+                province.get("districts")
+            )
+
+
+            for district in districts:
                 if district["id"] != district_id:
                     continue
 
-                municipalities = cls._get_municipalities(
-                    district
+                municipalities = cls._normalize_list(
+                    district.get("municipalities")
                 )
 
                 return [
                     {
-                        "id": local["id"],
-                        "district_id": local["district_id"],
-                        "name": local["name"],
+                        "id": local.get("id"),
+                        "district_id": local.get("district_id"),
+                        "name": local.get("name"),
                         "type": cls.CATEGORY_TYPES.get(
-                            local["category_id"],
+                            local.get("category_id"),
                             "Unknown",
                         ),
                         "wards": local.get("wards", []),
                         "website": local.get("website"),
-                        "area_sq_km": local.get(
-                            "area_sq_km"
-                        ),
+                        "area_sq_km": local.get("area_sq_km"),
                     }
                     for local in municipalities
                 ]
@@ -167,35 +162,37 @@ class LocationService:
         district_id,
         local_level_id,
     ):
-        data = cls.load_data()
+        provinces = cls._normalize_list(cls.load_data())
 
-        for province in data:
+        for province in provinces:
             if province["id"] != province_id:
                 continue
 
-            for district in province["districts"]:
+            districts = cls._normalize_list(
+                province.get("districts")
+            )
+
+            for district in districts:
                 if district["id"] != district_id:
                     continue
 
-                municipalities = cls._get_municipalities(
-                    district
+                municipalities = cls._normalize_list(
+                    district.get("municipalities")
                 )
 
                 for local in municipalities:
-                    if local["id"] == local_level_id:
+                    if local.get("id") == local_level_id:
                         return {
-                            "id": local["id"],
-                            "district_id": local["district_id"],
-                            "name": local["name"],
+                            "id": local.get("id"),
+                            "district_id": local.get("district_id"),
+                            "name": local.get("name"),
                             "type": cls.CATEGORY_TYPES.get(
-                                local["category_id"],
+                                local.get("category_id"),
                                 "Unknown",
                             ),
                             "wards": local.get("wards", []),
                             "website": local.get("website"),
-                            "area_sq_km": local.get(
-                                "area_sq_km"
-                            ),
+                            "area_sq_km": local.get("area_sq_km"),
                         }
 
         return None

@@ -52,13 +52,37 @@ def generate_organization_code(name):
 
 
 
-@extend_schema(
-    request=OrganizationSerializer,
-    tags=["Organizations"],
-)
-class OrganizationCreateView(APIView):
+@extend_schema(tags=["Organizations"])
+class OrganizationListCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses=OrganizationSerializer(many=True),
+    )
+    def get(self, request):
+        organizations = (
+            Organization.objects
+            .filter(owner=request.user)
+            .order_by("name")
+        )
+
+        serializer = OrganizationSerializer(
+            organizations,
+            many=True,
+        )
+
+        return Response(
+            {
+                "count": organizations.count(),
+                "results": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    @extend_schema(
+        request=OrganizationSerializer,
+        responses=OrganizationSerializer,
+    )
     def post(self, request):
         serializer = OrganizationSerializer(
             data=request.data,
@@ -68,8 +92,8 @@ class OrganizationCreateView(APIView):
         organization = serializer.save(
             owner=request.user,
             code=generate_organization_code(
-                serializer.validated_data["name"]
-                )
+                serializer.validated_data["name"],
+            ),
         )
 
         return Response(
