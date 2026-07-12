@@ -325,3 +325,65 @@ class Role(BaseModel):
 
     def __str__(self):
         return self.name
+
+
+
+class OrganizationMember(BaseModel):
+
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name="members",
+    )
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="organization_memberships",
+    )
+
+    role = models.ForeignKey(
+        "organizations.Role",
+        on_delete=models.PROTECT,
+        related_name="members",
+    )
+
+    branch = models.ForeignKey(
+        "organizations.Branch",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="members",
+    )
+
+    class Meta:
+        db_table = "organization_members"
+
+        ordering = [
+            "user__first_name",
+            "user__last_name",
+        ]
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "organization",
+                    "user",
+                ],
+                name="unique_user_per_organization",
+            )
+        ]
+
+        indexes = [
+            models.Index(fields=["organization"]),
+            models.Index(fields=["user"]),
+            models.Index(fields=["role"]),
+            models.Index(fields=["branch"]),
+            models.Index(fields=["is_active"]),
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.user.get_full_name()} "
+            f"({self.organization.name})"
+        )

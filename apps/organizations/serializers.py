@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Organization, Branch, Role
+from .models import Organization, Branch, Role, OrganizationMember
 
 class OrganizationSerializer(serializers.ModelSerializer):
     class Meta:
@@ -57,6 +57,22 @@ class RoleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Role
+        exclude = (
+            "id",
+            "organization",
+            "created_at",
+            "updated_at",
+            "is_active",
+        )
+
+
+class OrganizationMemberSerializer(
+    serializers.ModelSerializer
+):
+
+    class Meta:
+        model = OrganizationMember
+
         exclude = (
             "id",
             "organization",
