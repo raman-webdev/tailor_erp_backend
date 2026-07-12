@@ -130,34 +130,78 @@ Use this token with the Reset Password API.
 
 
 
+# class EmailVerificationService:
+
+#     @staticmethod
+#     def create_token(user):
+#         EmailVerificationToken.objects.filter(
+#             user=user,
+#             is_used=False
+#         ).delete()
+
+#         return EmailVerificationToken.objects.create(
+#             user=user,
+#             token=secrets.token_urlsafe(64),
+#             expires_at=timezone.now() + timedelta(hours=24),
+#         )
+    
+#     @staticmethod
+#     def validate_token(token):
+#         try:
+#             verification = EmailVerificationToken.objects.get(
+#                 token=token,
+#                 is_used=False,
+#             )
+#         except EmailVerificationToken.DoesNotExist:
+#             return None
+        
+#         if verification.expires_at < timezone.now():
+#             return None
+        
+#         return verification
+
+
+
 class EmailVerificationService:
 
     @staticmethod
     def create_token(user):
+        """
+        Create a new email verification token.
+        Remove any unused previous tokens.
+        """
+
         EmailVerificationToken.objects.filter(
             user=user,
-            is_used=False
+            is_used=False,
         ).delete()
 
-        return EmailVerificationToken.objects.create(
+        verification = EmailVerificationToken.objects.create(
             user=user,
             token=secrets.token_urlsafe(64),
             expires_at=timezone.now() + timedelta(hours=24),
         )
-    
+
+        return verification
+
     @staticmethod
     def validate_token(token):
+        """
+        Validate verification token.
+        """
+
         try:
             verification = EmailVerificationToken.objects.get(
                 token=token,
                 is_used=False,
             )
+
         except EmailVerificationToken.DoesNotExist:
             return None
-        
+
         if verification.expires_at < timezone.now():
             return None
-        
+
         return verification
     
 

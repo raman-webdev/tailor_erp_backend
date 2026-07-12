@@ -209,6 +209,8 @@ class Branch(BaseModel):
         blank=True,
     )
 
+    is_active = models.BooleanField(default=True)
+
     manager = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -270,3 +272,56 @@ class Branch(BaseModel):
 
 
 
+class Role(BaseModel):
+
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name="roles",
+    )
+
+    name = models.CharField(
+        max_length=100,
+    )
+
+    description = models.TextField(
+        blank=True,
+    )
+
+    class Meta:
+        db_table = "roles"
+
+        ordering = [
+            "name",
+        ]
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "organization",
+                    "name",
+                ],
+                name="unique_role_per_organization",
+            )
+        ]
+
+        indexes = [
+            models.Index(
+                fields=[
+                    "organization",
+                ]
+            ),
+            models.Index(
+                fields=[
+                    "name",
+                ]
+            ),
+            models.Index(
+                fields=[
+                    "is_active",
+                ]
+            ),
+        ]
+
+    def __str__(self):
+        return self.name
