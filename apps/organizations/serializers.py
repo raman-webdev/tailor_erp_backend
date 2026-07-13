@@ -1,6 +1,7 @@
 from rest_framework import serializers
-
+from ..accounts.models import User
 from .models import Organization, Branch, Role, OrganizationMember
+from .services import OrganizationMemberService
 
 class OrganizationSerializer(serializers.ModelSerializer):
     class Meta:
@@ -70,13 +71,102 @@ class OrganizationMemberSerializer(
     serializers.ModelSerializer
 ):
 
+    first_name = serializers.CharField(
+        max_length=100,
+        write_only=True,
+        required=True,
+    )
+
+    last_name = serializers.CharField(
+        max_length=100,
+        write_only=True,
+        required=True,
+    )
+
+    email = serializers.EmailField(
+        write_only=True,
+        required=True,
+    )
+
+    phone = serializers.CharField(
+        max_length=20,
+        write_only=True,
+        required=True,
+    )
+
+    role = serializers.PrimaryKeyRelatedField(
+        queryset=Role.objects.none(),
+    )
+
+    branch = serializers.PrimaryKeyRelatedField(
+        queryset=Branch.objects.none(),
+    )
+
     class Meta:
         model = OrganizationMember
 
         exclude = (
             "id",
             "organization",
+            "user",
             "created_at",
             "updated_at",
             "is_active",
+        )
+
+    def __init__(
+        self,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(
+            *args,
+            **kwargs,
+        )
+
+        organization = self.context.get(
+            "organization"
+        )
+
+        if organization:
+            self.fields["role"].queryset = (
+                Role.objects.filter(
+                    organization=organization,
+                    is_active=True,
+                )
+            )
+
+            self.fields["branch"].queryset = (
+                Branch.objects.filter(
+                    organization=organization,
+                    is_active=True,
+                )
+            )
+
+    def validate_email(
+        self,
+        value,
+    ):
+        if User.objects.filter(
+            email=value,
+        ).exists():
+            raise serializers.ValidationError(
+                "A user with this email already exists."
+            )
+
+        return value
+
+    def create(
+        self,
+        validated_data,
+    ):
+        organization = self.context[
+            "organization"
+        ]
+
+        return (
+            OrganizationMemberService.create_member(
+                organization=organization,
+                validated_data=validated_data,
+            )
         )
