@@ -3,8 +3,6 @@ from django.db import transaction
 from apps.accounts.models import User
 from apps.accounts.services import (
     EmailService,
-)
-from apps.accounts.services import (
     EmailVerificationService,
 )
 
@@ -56,7 +54,7 @@ class OrganizationMemberService:
 
         verification = (
             EmailVerificationService.create_token(
-                user
+                user,
             )
         )
 
@@ -66,3 +64,56 @@ class OrganizationMemberService:
         )
 
         return member
+
+    @staticmethod
+    @transaction.atomic
+    def update_member(
+        member,
+        validated_data,
+    ):
+        """
+        Updates both the User and OrganizationMember.
+        """
+
+        user = member.user
+
+        user.first_name = validated_data.pop(
+            "first_name",
+            user.first_name,
+        )
+
+        user.last_name = validated_data.pop(
+            "last_name",
+            user.last_name,
+        )
+
+        user.email = validated_data.pop(
+            "email",
+            user.email,
+        )
+
+        user.phone = validated_data.pop(
+            "phone",
+            user.phone,
+        )
+
+        # Keep username and email in sync
+        user.username = user.email
+
+        user.save()
+
+        member.role = validated_data.get(
+            "role",
+            member.role,
+        )
+
+        member.branch = validated_data.get(
+            "branch",
+            member.branch,
+        )
+
+        member.save()
+
+        return member
+
+    

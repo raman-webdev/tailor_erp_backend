@@ -68,29 +68,25 @@ class RoleSerializer(serializers.ModelSerializer):
 
 
 class OrganizationMemberSerializer(
-    serializers.ModelSerializer
+    serializers.ModelSerializer,
 ):
 
     first_name = serializers.CharField(
         max_length=100,
-        write_only=True,
         required=True,
     )
 
     last_name = serializers.CharField(
         max_length=100,
-        write_only=True,
         required=True,
     )
 
     email = serializers.EmailField(
-        write_only=True,
         required=True,
     )
 
     phone = serializers.CharField(
         max_length=20,
-        write_only=True,
         required=True,
     )
 
@@ -100,15 +96,20 @@ class OrganizationMemberSerializer(
 
     branch = serializers.PrimaryKeyRelatedField(
         queryset=Branch.objects.none(),
+        allow_null=True,
+        required=False,
     )
 
     class Meta:
         model = OrganizationMember
 
         exclude = (
-            "id",
             "organization",
             "user",
+        )
+
+        read_only_fields = (
+            "id",
             "created_at",
             "updated_at",
             "is_active",
@@ -125,7 +126,7 @@ class OrganizationMemberSerializer(
         )
 
         organization = self.context.get(
-            "organization"
+            "organization",
         )
 
         if organization:
@@ -147,9 +148,16 @@ class OrganizationMemberSerializer(
         self,
         value,
     ):
-        if User.objects.filter(
+        queryset = User.objects.filter(
             email=value,
-        ).exists():
+        )
+
+        if self.instance:
+            queryset = queryset.exclude(
+                pk=self.instance.user.pk,
+            )
+
+        if queryset.exists():
             raise serializers.ValidationError(
                 "A user with this email already exists."
             )
@@ -170,3 +178,42 @@ class OrganizationMemberSerializer(
                 validated_data=validated_data,
             )
         )
+
+    def update(
+        self,
+        instance,
+        validated_data,
+    ):
+        return (
+            OrganizationMemberService.update_member(
+                member=instance,
+                validated_data=validated_data,
+            )
+        )
+
+    def to_representation(
+        self,
+        instance,
+    ):
+        return {
+            "id": str(instance.id),
+            "first_name": instance.user.first_name,
+            "last_name": instance.user.last_name,
+            "email": instance.user.email,
+            "phone": instance.user.phone,
+            "role": {
+                "id": str(instance.role.id),
+                "name": instance.role.name,
+            },
+            "branch": (
+                {
+                    "id": str(instance.branch.id),
+                    "name": instance.branch.name,
+                }
+                if instance.branch
+                else None
+            ),
+            "is_active": instance.is_active,
+            "created_at": instance.created_at,
+            "updated_at": instance.updated_at,
+        }

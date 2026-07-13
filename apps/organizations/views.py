@@ -7,8 +7,8 @@ from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 
-from .models import Role
-from .serializers import OrganizationSerializer, BranchSerializer, RoleSerializer
+from .models import Role, OrganizationMember
+from .serializers import OrganizationSerializer, BranchSerializer, RoleSerializer, OrganizationMemberSerializer
 from apps.common.services.org_service import get_current_organization
 
 import re
@@ -617,6 +617,176 @@ class RoleDetailView(APIView):
         return Response(
             {
                 "message": "Role deleted successfully.",
+            },
+            status=status.HTTP_204_NO_CONTENT,
+        )
+    
+
+class OrganizationMemberListCreateView(
+    APIView
+):
+
+    permission_classes = [
+        IsAuthenticated,
+    ]
+
+    def post(self, request):
+
+        organization = (
+            get_current_organization(
+                request
+            )
+        )
+
+        serializer = (
+            OrganizationMemberSerializer(
+                data=request.data,
+                context={
+                    "organization": organization,
+                },
+            )
+        )
+
+        serializer.is_valid(
+            raise_exception=True,
+        )
+
+        member = serializer.save()
+
+        return Response(
+            {
+                "message": (
+                    "Organization member created successfully. "
+                    "Invitation email sent."
+                ),
+            },
+            status=status.HTTP_201_CREATED,
+        )
+    
+
+@extend_schema(tags=["Organization Members"])
+class OrganizationMemberDetailView(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+    ]
+
+    def get_object(
+        self,
+        request,
+        pk,
+    ):
+        organization = get_current_organization(
+            request,
+        )
+
+        return get_object_or_404(
+            OrganizationMember.objects.select_related(
+                "organization",
+                "user",
+                "role",
+                "branch",
+            ),
+            pk=pk,
+            organization=organization,
+            is_active=True,
+        )
+
+    @extend_schema(
+        responses=OrganizationMemberSerializer,
+    )
+    def get(
+        self,
+        request,
+        pk,
+    ):
+        member = self.get_object(
+            request,
+            pk,
+        )
+
+        serializer = OrganizationMemberSerializer(
+            member,
+            context={
+                "organization": member.organization,
+            },
+        )
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_200_OK,
+        )
+
+    @extend_schema(
+        request=OrganizationMemberSerializer,
+        responses=OrganizationMemberSerializer,
+    )
+    def patch(
+        self,
+        request,
+        pk,
+    ):
+        member = self.get_object(
+            request,
+            pk,
+        )
+
+        serializer = OrganizationMemberSerializer(
+            member,
+            data=request.data,
+            partial=True,
+            context={
+                "organization": member.organization,
+            },
+        )
+
+        serializer.is_valid(
+            raise_exception=True,
+        )
+
+        member = serializer.save()
+
+        return Response(
+            {
+                "message": (
+                    "Organization member updated successfully."
+                ),
+                "member": OrganizationMemberSerializer(
+                    member,
+                    context={
+                        "organization": member.organization,
+                    },
+                ).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    @extend_schema(
+        responses=None,
+    )
+    def delete(
+        self,
+        request,
+        pk,
+    ):
+        member = self.get_object(
+            request,
+            pk,
+        )
+
+        member.is_active = False
+
+        member.save(
+            update_fields=[
+                "is_active",
+            ],
+        )
+
+        return Response(
+            {
+                "message": (
+                    "Organization member deleted successfully."
+                ),
             },
             status=status.HTTP_204_NO_CONTENT,
         )
