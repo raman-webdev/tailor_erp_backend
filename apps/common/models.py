@@ -23,3 +23,47 @@ class BaseModel(models.Model):
 
     class Meta:
         abstract = True
+
+
+class Permission(BaseModel):
+
+    module = models.CharField(
+        max_length=100,
+    )
+
+    name = models.CharField(
+        max_length=150,
+    )
+
+    code = models.CharField(
+        max_length=150,
+        unique=True,
+    )
+
+    description = models.TextField(
+        blank=True,
+    )
+
+    class Meta:
+        db_table = "permissions"
+
+        ordering = [
+            "module",
+            "name",
+        ]
+
+        indexes = [
+            models.Index(
+                fields=[
+                    "module",
+                ]
+            ),
+            models.Index(
+                fields=[
+                    "code",
+                ]
+            ),
+        ]
+
+    def __str__(self):
+        return self.code

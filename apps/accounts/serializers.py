@@ -153,3 +153,6 @@ class VerifyEmailSerializer(serializers.Serializer):
 
 class ResendVerificationEmailSerializer(serializers.Serializer):
     email = serializers.EmailField()
+
+
+

@@ -280,6 +280,12 @@ class Role(BaseModel):
         related_name="roles",
     )
 
+    permissions = models.ManyToManyField(
+       "common.Permission",
+       blank=True,
+       related_name="roles"
+       )
+
     name = models.CharField(
         max_length=100,
     )

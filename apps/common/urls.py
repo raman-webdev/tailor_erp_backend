@@ -4,6 +4,7 @@ from .views import (
     ProvinceListView,
     DistrictListView,
     LocalLevelListView,
+    PermissionListView,
 )
 
 urlpatterns = [
@@ -23,5 +24,11 @@ urlpatterns = [
         "provinces/<int:province_id>/districts/<int:district_id>/local-levels/",
         LocalLevelListView.as_view(),
         name="local-level-list",
+    ),
+
+    path(
+    "permissions/",
+    PermissionListView.as_view(),
+    name="permission-list",
     ),
 ]
