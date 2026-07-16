@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from ..accounts.models import User
+from ..common.models import Permission
 from .models import Organization, Branch, Role, OrganizationMember
 from .services import OrganizationMemberService
 
@@ -65,6 +66,18 @@ class RoleSerializer(serializers.ModelSerializer):
             "updated_at",
             "is_active",
         )
+
+
+class RolePermissionSerializer(
+    serializers.Serializer,
+):
+
+    permissions = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=Permission.objects.filter(
+            is_active=True,
+        ),
+    )
 
 
 class OrganizationMemberSerializer(

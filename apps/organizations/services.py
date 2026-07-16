@@ -64,6 +64,8 @@ class OrganizationMemberService:
         )
 
         return member
+    
+    
 
     @staticmethod
     @transaction.atomic
@@ -116,4 +118,19 @@ class OrganizationMemberService:
 
         return member
 
-    
+
+
+
+class RoleService:
+
+    @staticmethod
+    @transaction.atomic
+    def update_permissions(
+        role,
+        permissions,
+    ):
+        role.permissions.set(
+            permissions,
+        )
+
+        return role

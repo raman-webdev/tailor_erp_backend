@@ -10,6 +10,7 @@ from django.shortcuts import get_object_or_404
 from .models import Role, OrganizationMember
 from .serializers import OrganizationSerializer, BranchSerializer, RoleSerializer, OrganizationMemberSerializer
 from apps.common.services.org_service import get_current_organization
+from apps.common.permissions import HasOrganizationPermission
 
 import re
 
@@ -255,7 +256,13 @@ class BranchListCreateView(APIView):
 
     permission_classes = [
         IsAuthenticated,
-    ]
+        HasOrganizationPermission,
+        ]
+    
+    permission_map = {
+        "GET" : "branch.view",
+        "POST" : "branch.create",
+    }
 
     @extend_schema(
         responses=BranchSerializer(many=True),
@@ -352,7 +359,14 @@ class BranchDetailView(APIView):
 
     permission_classes = [
         IsAuthenticated,
+        HasOrganizationPermission,
     ]
+
+    permission_maps = {
+        "GET" : "branch.view",
+        "PATCH": "branch.update",
+        "DELETE" : "branch.delete",
+    }
 
     def get_object(
         self,
@@ -461,7 +475,13 @@ class RoleListCreateView(APIView):
 
     permission_classes = [
         IsAuthenticated,
+        HasOrganizationPermission,
     ]
+
+    permission_map = {
+        "GET": "role.view",
+        "POST": "role.create",
+    }
 
     @extend_schema(
         responses=RoleSerializer(many=True),
@@ -473,10 +493,20 @@ class RoleListCreateView(APIView):
             request
         )
 
-        roles = Role.objects.filter(
-            organization=organization,
-            is_active=True,
-        ).order_by("name")
+        roles = (
+    Role.objects
+    .filter(
+        organization=organization,
+        is_active=True,
+    )
+    .select_related(
+        "organization",
+    )
+    .prefetch_related(
+        "permissions",
+    )
+    .order_by("name")
+)
 
         serializer = RoleSerializer(
             roles,
@@ -521,7 +551,14 @@ class RoleDetailView(APIView):
 
     permission_classes = [
         IsAuthenticated,
+        HasOrganizationPermission,
     ]
+
+    permission_map = {
+        "GET": "role.view",
+        "PATCH": "role.update",
+        "DELETE": "role.delete",
+    }
 
     def get_object(
         self,
@@ -532,11 +569,16 @@ class RoleDetailView(APIView):
             request
         )
 
-        return Role.objects.get(
-            pk=pk,
-            organization=organization,
-            is_active=True,
-        )
+        return get_object_or_404(
+    Role.objects.select_related(
+        "organization",
+    ).prefetch_related(
+        "permissions",
+    ),
+    pk=pk,
+    organization=organization,
+    is_active=True,
+)
 
     @extend_schema(
         responses=RoleSerializer,
@@ -628,7 +670,13 @@ class OrganizationMemberListCreateView(
 
     permission_classes = [
         IsAuthenticated,
+        HasOrganizationPermission,
     ]
+
+    permission_map = {
+        "GET": "member.view",
+        "POST": "member.create",
+    }
 
     def post(self, request):
 
@@ -669,7 +717,13 @@ class OrganizationMemberDetailView(APIView):
 
     permission_classes = [
         IsAuthenticated,
+        HasOrganizationPermission,
     ]
+
+    permission_map = {
+        "GET": "branch.view",
+        "POST": "branch.create",
+    }
 
     def get_object(
         self,
